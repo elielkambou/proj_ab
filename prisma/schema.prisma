@@ -1,0 +1,108 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  PARENT
+  TEACHER
+  ADMIN
+}
+
+enum TeacherApplicationStatus {
+  DRAFT
+  SUBMITTED
+  INTERVIEW
+  APPROVED
+  REJECTED
+}
+
+enum Modality {
+  DOMICILE
+  VISIO
+  MIXTE
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String
+  role      Role
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  teacherProfile TeacherProfile?
+  parentProfile  ParentProfile?
+  requests       TutoringRequest[] @relation("ParentRequests")
+}
+
+model TeacherProfile {
+  id        String @id @default(cuid())
+  userId    String @unique
+  user      User   @relation(fields: [userId], references: [id])
+
+  fullName  String?
+  bio       String?
+
+  status    TeacherApplicationStatus @default(DRAFT)
+
+  subjects  String[]
+  levels    String[]
+  cities    String[]
+
+  listings  TutorListing[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model ParentProfile {
+  id        String @id @default(cuid())
+  userId    String @unique
+  user      User   @relation(fields: [userId], references: [id])
+
+  fullName  String?
+  city      String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model TutorListing {
+  id          String   @id @default(cuid())
+  teacherId   String
+  teacher     TeacherProfile @relation(fields: [teacherId], references: [id])
+
+  title       String
+  subject     String
+  levels      String[]
+  city        String
+  modality    Modality
+  description String?
+  rateMin     Int?
+  rateMax     Int?
+  isActive    Boolean  @default(true)
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model TutoringRequest {
+  id           String   @id @default(cuid())
+  parentId     String
+  parent       User     @relation("ParentRequests", fields: [parentId], references: [id])
+
+  subject      String
+  level        String
+  city         String
+  modality     Modality
+  goals        String?
+  availability String?
+
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
