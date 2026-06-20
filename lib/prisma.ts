@@ -7,10 +7,33 @@ const globalForPrisma = globalThis as unknown as {
   pool?: Pool;
 };
 
+function getDatabaseUrl() {
+  const databaseUrl = process.env.DATABASE_URL;
+
+  if (!databaseUrl) {
+    throw new Error(
+      'DATABASE_URL manquant. Crée un fichier .env avec DATABASE_URL="postgresql://USER:PASSWORD@localhost:5432/soutien".'
+    );
+  }
+
+  try {
+    const url = new URL(databaseUrl);
+    if (!url.username || !url.password) {
+      throw new Error("missing-credentials");
+    }
+  } catch {
+    throw new Error(
+      'DATABASE_URL invalide. Utilise le format DATABASE_URL="postgresql://USER:PASSWORD@HOST:PORT/DATABASE". Si ton mot de passe contient @, #, / ou :, encode-le dans l’URL.'
+    );
+  }
+
+  return databaseUrl;
+}
+
 const pool =
   globalForPrisma.pool ??
   new Pool({
-    connectionString: process.env.DATABASE_URL,
+    connectionString: getDatabaseUrl(),
   });
 
 if (process.env.NODE_ENV !== "production") globalForPrisma.pool = pool;

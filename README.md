@@ -1,36 +1,62 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Soutien+
 
-## Getting Started
+Application Next.js de mise en relation entre familles, professeurs et admin, avec candidature professeur, CV téléchargeable dans l’espace admin et base PostgreSQL.
 
-First, run the development server:
+## Fonctionnalités
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+- Catalogue public d’offres avec filtres par matière, ville, niveau et modalité.
+- Comptes parent/professeur/admin avec sessions sécurisées par cookie JWT.
+- Demandes parent complètes : élève, téléphone, disponibilité, objectifs et offre source.
+- Candidature professeur : profil, expérience, diplôme, première offre et upload CV.
+- Stockage du CV en base et téléchargement sécurisé depuis l’espace admin.
+- Console admin pour valider/refuser les professeurs, télécharger les CV et assigner une offre à une demande.
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Installation locale
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+    npm install
+    cp .env.example .env
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Le projet fournit un Postgres Docker sur le port 5433, pour éviter les conflits avec un Postgres déjà présent sur 5432.
 
-## Learn More
+## Variables d’environnement
 
-To learn more about Next.js, take a look at the following resources:
+    DATABASE_URL="postgresql://soutien:soutien_dev_password@localhost:5433/soutien"
+    AUTH_SECRET="une_phrase_longue_et_secrete"
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Pour la production, remplace DATABASE_URL par l’URL Neon pooled avec sslmode=require.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Base de données locale
 
-## Deploy on Vercel
+    npm run db:up
+    npm run db:check
+    npm run db:generate
+    npm run db:migrate
+    npm run db:seed
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Comptes de démonstration après le seed:
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- parent@example.com / demo12345
+- admin@example.com / demo12345
+- prof.maths@example.com / demo12345
+
+## Développement
+
+    npm run dev
+
+Ouvre ensuite http://localhost:3000.
+
+## Déploiement Neon + Vercel
+
+1. Crée un projet Neon et copie l’URL PostgreSQL pooled.
+2. Dans Vercel, ajoute les variables DATABASE_URL et AUTH_SECRET.
+3. Applique les migrations sur Neon depuis ta machine:
+
+    npm run db:deploy
+
+4. Déploie sur Vercel. Le script de build exécute prisma generate puis next build.
+
+## Docker / droits
+
+Si npm run db:up répond que Docker est introuvable ou que l’accès à /var/run/docker.sock est refusé, démarre Docker Desktop ou lance Docker avec un utilisateur qui a les droits. Sous WSL avec Docker installé via Snap:
+
+    sudo /snap/bin/docker compose up -d db

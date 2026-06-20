@@ -6,17 +6,31 @@ import { clearSessionCookie, setSessionCookie, signSession } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { Role } from "@prisma/client";
 
-function toRole(v: unknown): Role {
-  return v === "TEACHER" ? "TEACHER" : v === "ADMIN" ? "ADMIN" : "PARENT";
+function toPublicRole(v: unknown): Role {
+  return v === "TEACHER" ? "TEACHER" : "PARENT";
+}
+
+function safeReturnTo(value: string) {
+  if (!value || !value.startsWith("/") || value.startsWith("//")) return "";
+  return value;
+}
+
+function dashboardFor(role: Role) {
+  if (role === "TEACHER") return "/teacher/onboarding";
+  if (role === "ADMIN") return "/admin";
+  return "/parent/dashboard";
 }
 
 export async function registerAction(formData: FormData) {
   const email = String(formData.get("email") ?? "").trim().toLowerCase();
   const password = String(formData.get("password") ?? "");
-  const role = toRole(formData.get("role"));
-  const returnTo = String(formData.get("returnTo") ?? "");
+  const role = toPublicRole(formData.get("role"));
+  const returnTo = safeReturnTo(String(formData.get("returnTo") ?? ""));
+  const fullName = String(formData.get("fullName") ?? "").trim();
+  const phone = String(formData.get("phone") ?? "").trim();
+  const city = String(formData.get("city") ?? "").trim();
 
-  if (!email || !password || password.length < 8) {
+  if (!email || !password || password.length < 8 || !fullName || !phone) {
     redirect(
       `/register?role=${role}&returnTo=${encodeURIComponent(
         returnTo
@@ -29,9 +43,7 @@ export async function registerAction(formData: FormData) {
     select: { id: true },
   });
   if (exists) {
-    redirect(
-      `/login?returnTo=${encodeURIComponent(returnTo)}&error=exists`
-    );
+    redirect(`/login?returnTo=${encodeURIComponent(returnTo)}&error=exists`);
   }
 
   const hash = await bcrypt.hash(password, 10);
@@ -45,17 +57,24 @@ export async function registerAction(formData: FormData) {
         ? {
             teacherProfile: {
               create: {
+                fullName,
+                phone,
+                city: city || null,
                 status: "DRAFT",
                 subjects: [],
                 levels: [],
-                cities: [],
+                cities: city ? [city] : [],
               },
             },
           }
         : role === "PARENT"
         ? {
             parentProfile: {
-              create: {},
+              create: {
+                fullName,
+                phone,
+                city: city || null,
+              },
             },
           }
         : {}),
@@ -65,21 +84,16 @@ export async function registerAction(formData: FormData) {
 
   const token = await signSession({ userId: user.id, role: user.role });
 
-  // 🔥 Correction demandée
   await setSessionCookie(token);
 
   if (returnTo) redirect(returnTo);
-  redirect(
-    user.role === "TEACHER"
-      ? "/teacher/onboarding"
-      : "/parent/dashboard"
-  );
+  redirect(dashboardFor(user.role));
 }
 
 export async function loginAction(formData: FormData) {
   const email = String(formData.get("email") ?? "").trim().toLowerCase();
   const password = String(formData.get("password") ?? "");
-  const returnTo = String(formData.get("returnTo") ?? "");
+  const returnTo = safeReturnTo(String(formData.get("returnTo") ?? ""));
 
   const user = await prisma.user.findUnique({
     where: { email },
@@ -99,19 +113,13 @@ export async function loginAction(formData: FormData) {
 
   const token = await signSession({ userId: user.id, role: user.role });
 
-  // 🔥 Correction demandée
   await setSessionCookie(token);
 
   if (returnTo) redirect(returnTo);
-  redirect(
-    user.role === "TEACHER"
-      ? "/teacher/onboarding"
-      : "/parent/dashboard"
-  );
+  redirect(dashboardFor(user.role));
 }
 
 export async function logoutAction() {
-  // 🔥 Correction demandée
   await clearSessionCookie();
   redirect("/");
 }

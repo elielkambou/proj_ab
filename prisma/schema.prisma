@@ -26,6 +26,12 @@ enum Modality {
   MIXTE
 }
 
+enum RequestStatus {
+  NEW
+  MATCHED
+  CLOSED
+}
+
 model User {
   id        String   @id @default(cuid())
   email     String   @unique
@@ -45,14 +51,25 @@ model TeacherProfile {
   userId    String @unique
   user      User   @relation(fields: [userId], references: [id])
 
-  fullName  String?
-  bio       String?
+  fullName        String?
+  phone           String?
+  city            String?
+  bio             String?
+  experienceYears Int?
+  diploma         String?
 
   status    TeacherApplicationStatus @default(DRAFT)
 
   subjects  String[]
   levels    String[]
   cities    String[]
+
+  cvFileName             String?
+  cvMimeType             String?
+  cvSize                 Int?
+  cvData                 Bytes?
+  cvReceivedAt           DateTime?
+  applicationEmailSentAt DateTime?
 
   listings  TutorListing[]
 
@@ -66,6 +83,7 @@ model ParentProfile {
   user      User   @relation(fields: [userId], references: [id])
 
   fullName  String?
+  phone     String?
   city      String?
 
   createdAt DateTime @default(now())
@@ -87,6 +105,10 @@ model TutorListing {
   rateMax     Int?
   isActive    Boolean  @default(true)
 
+  // relations demandes
+  sourceRequests   TutoringRequest[] @relation("SourceListing")
+  assignedRequests TutoringRequest[] @relation("AssignedListing")
+
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }
@@ -96,12 +118,25 @@ model TutoringRequest {
   parentId     String
   parent       User     @relation("ParentRequests", fields: [parentId], references: [id])
 
-  subject      String
-  level        String
-  city         String
-  modality     Modality
-  goals        String?
-  availability String?
+  subject          String
+  level            String
+  city             String
+  modality         Modality
+  studentName      String?
+  contactPhone     String?
+  preferredContact String?
+  goals            String?
+  availability     String?
+
+  status       RequestStatus @default(NEW)
+
+  // Offre d’origine (celle cliquée)
+  sourceListingId String?
+  sourceListing   TutorListing? @relation("SourceListing", fields: [sourceListingId], references: [id])
+
+  // Offre assignée par admin (matching)
+  assignedListingId String?
+  assignedListing   TutorListing? @relation("AssignedListing", fields: [assignedListingId], references: [id])
 
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt

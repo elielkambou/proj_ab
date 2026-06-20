@@ -7,14 +7,17 @@ import { createRequestAction } from "@/app/actions/requests";
 export default async function NewRequestPage({
   searchParams,
 }: {
-  searchParams: Promise<{ listingId?: string }>;
+  searchParams: Promise<{ listingId?: string; error?: string }>;
 }) {
-  const user = await getCurrentUser();
-  if (!user) redirect(`/login?returnTo=${encodeURIComponent("/parent/requests/new")}`);
-  if (user.role !== "PARENT") redirect("/");
-
   const sp = await searchParams;
   const listingId = sp.listingId;
+  const returnTo = `/parent/requests/new${
+    listingId ? `?listingId=${encodeURIComponent(listingId)}` : ""
+  }`;
+
+  const user = await getCurrentUser();
+  if (!user) redirect(`/login?returnTo=${encodeURIComponent(returnTo)}`);
+  if (user.role !== "PARENT") redirect("/");
 
   if (!listingId) {
     return (
@@ -66,9 +69,48 @@ export default async function NewRequestPage({
         Offre : <span className="font-medium">{offer.title}</span> — {offer.teacher.fullName ?? "Professeur"}
       </p>
 
-      <form action={createRequestAction} className="mt-8 space-y-4 rounded-3xl border bg-white p-6 shadow-sm">
+      <form action={createRequestAction} className="mt-8 space-y-4 rounded-3xl border border-emerald-100 bg-white p-6 shadow-sm">
         <input type="hidden" name="listingId" value={offer.id} />
 
+        {sp.error === "invalid" && (
+          <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+            Vérifie les champs obligatoires avant d’envoyer la demande.
+          </div>
+        )}
+
+        <div className="grid gap-2">
+          <label className="text-sm font-medium">Nom de l’élève</label>
+          <input
+            name="studentName"
+            className="rounded-xl border px-3 py-2"
+            placeholder="Ex: Yao K."
+            required
+          />
+        </div>
+
+        <div className="grid gap-3 sm:grid-cols-2">
+          <div className="grid gap-2">
+            <label className="text-sm font-medium">Téléphone de contact</label>
+            <input
+              name="contactPhone"
+              className="rounded-xl border px-3 py-2"
+              placeholder="Ex: +225 07 00 00 00 00"
+              required
+            />
+          </div>
+          <div className="grid gap-2">
+            <label className="text-sm font-medium">Contact préféré</label>
+            <select
+              name="preferredContact"
+              className="rounded-xl border px-3 py-2"
+              defaultValue="WhatsApp"
+            >
+              <option>WhatsApp</option>
+              <option>Appel</option>
+              <option>Email</option>
+            </select>
+          </div>
+        </div>
         <div className="grid gap-2">
           <label className="text-sm font-medium">Matière</label>
           <input
@@ -125,12 +167,12 @@ export default async function NewRequestPage({
           />
         </div>
 
-        <button className="w-full rounded-2xl bg-black px-5 py-3 text-sm text-white hover:opacity-90">
+        <button className="w-full rounded-2xl bg-emerald-700 px-5 py-3 text-sm font-medium text-white hover:bg-emerald-800">
           Envoyer la demande
         </button>
 
         <p className="text-xs text-gray-500">
-          (V1) La demande est enregistrée. Ensuite on fera le matching prof ↔ demande.
+          La demande sera enregistrée et transmise pour validation/matching.
         </p>
       </form>
     </div>
